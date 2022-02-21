@@ -37,9 +37,20 @@ UPDATE: Изначально я прислал Вам свою реализац�
 Переписал классы обоих буферов с инициализацией с пустым списком. Т.к. использовать pop(0)
 на каждом вызове get() очень дорого, то реализовал логику буфера через счётчик несчитанных элементов.
 
+Так же напишем исключения для заполненности и пустоты буфера. 
 """
 
 
+class BufferFull(Exception):
+    def __init__(self, text):
+        self.txt = text
+
+
+class BufferEmpty(Exception):
+    def __init__(self, text):
+        self.txt = text
+
+        
 class CircularBufferWithoutOverwrite:
 
     def __init__(self, length):
@@ -51,17 +62,18 @@ class CircularBufferWithoutOverwrite:
 
     # Сделаем проверки на возможность записи и на наличие объектов для чтения.
 
-    def cant_put(self):
+    def is_full(self):
         return self.count == self.length
 
-    def nothing_to_get(self):
+    def is_empty(self):
         return not self.count
 
-    # Метод put записывает данные в буфер по указателю head и смещает указатель.
+    # Метод put записывает данные в буфер по указателю head и смещает указатель
+    # Если положить в буфер не можем, прокидывается ошибка.
 
     def put(self, item):
-        if self.cant_put():
-            return 'cant put'
+        if self.is_full():
+            raise BufferFull('buffer is full')
         if len(self.buffer) < self.length:
             self.buffer.append(item)
         else:
@@ -73,10 +85,11 @@ class CircularBufferWithoutOverwrite:
             self.head += 1
 
     # Метод get возвращает элемент из буфера по указателю tail и сдвигает указатель tail.
+    # Если взять из буфера нечего, прокидывается ошибка.
 
     def get(self):
-        if self.nothing_to_get():
-            return 'nothing to get'
+        if self.is_empty():
+            raise BufferEmpty('buffer is empty')
         item = self.buffer[self.tail]
         self.count -= 1
         if self.tail == self.length - 1:
@@ -84,7 +97,6 @@ class CircularBufferWithoutOverwrite:
         else:
             self.tail += 1
         return item
-
 
 '''Плюсы данной реализации в том, что никакие данные не будут потеряны
 Минус в том, что если скорость чтения опережает скорость записи, то процессу отправляющему данные придётся ждать.
@@ -106,7 +118,7 @@ class CircularBufferWithOverwrite:
         self.tail = 0
         self.count = 0
 
-    def nothing_to_get(self):
+    def is_empty(self):
         return not self.count
 
     def put(self, item):
@@ -124,8 +136,8 @@ class CircularBufferWithOverwrite:
             self.head += 1
 
     def get(self):
-        if self.nothing_to_get():
-            return 'nothing to get'
+        if self.is_empty():
+            raise BufferEmpty('buffer is empty')
         item = self.buffer[self.tail]
         self.count -= 1
         self.tail_shift()

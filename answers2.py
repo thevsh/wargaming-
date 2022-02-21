@@ -49,9 +49,9 @@ class CircularBufferWithoutOverwrite:
         self.tail = 0
         self.count = 0
 
-    # Сделаем проверки на заполненность и на наличие объектов для чтения.
+    # Сделаем проверки на возможность записи и на наличие объектов для чтения.
 
-    def is_full(self):
+    def cant_put(self):
         return self.count == self.length
 
     def nothing_to_get(self):
@@ -60,8 +60,8 @@ class CircularBufferWithoutOverwrite:
     # Метод put записывает данные в буфер по указателю head и смещает указатель.
 
     def put(self, item):
-        if self.is_full():
-            return 'buffer is full'
+        if self.cant_put():
+            return 'cant put'
         if len(self.buffer) < self.length:
             self.buffer.append(item)
         else:
@@ -172,7 +172,7 @@ UPDATE:
 
 
 def merge_sort(lst):
-    if len(lst) == 0:
+    if not lst:
         return 'list is empty'
     if len(lst) == 1:
         return lst

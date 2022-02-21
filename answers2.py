@@ -69,7 +69,7 @@ class CircularBufferWithoutOverwrite:
         return not self.count
 
     # Метод put записывает данные в буфер по указателю head и смещает указатель
-    # Если положить в буфер не можем, прокидывается ошибка.
+    # Если положить в буфер не можем, прокидывается исключение.
 
     def put(self, item):
         if self.is_full():
@@ -85,7 +85,7 @@ class CircularBufferWithoutOverwrite:
             self.head += 1
 
     # Метод get возвращает элемент из буфера по указателю tail и сдвигает указатель tail.
-    # Если взять из буфера нечего, прокидывается ошибка.
+    # Если взять из буфера нечего, прокидывается исключение.
 
     def get(self):
         if self.is_empty():

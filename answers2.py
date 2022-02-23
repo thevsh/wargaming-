@@ -21,6 +21,7 @@ UPDATE: Есть ещё идея, как использовать двоично
 def is_even_new(num):
     return not num & 1
 
+
 """
 2. На языке Python (2.7) реализовать минимум по 2 класса реализовывающих циклический буфер FIFO.
 Объяснить плюсы и минусы каждой реализации.
@@ -35,22 +36,10 @@ UPDATE: Изначально я прислал Вам свою реализац�
 что в него может прилететь None на put и сломать логику.
 
 Переписал классы обоих буферов с инициализацией с пустым списком. Т.к. использовать pop(0)
-на каждом вызове get() очень дорого, то реализовал логику буфера через счётчик несчитанных элементов.
-
-Так же напишем исключения для заполненности и пустоты буфера. 
+на каждом вызове get() очень дорого, реализуем через индексы tail и head.
 """
 
 
-class BufferFull(Exception):
-    def __init__(self, text):
-        self.txt = text
-
-
-class BufferEmpty(Exception):
-    def __init__(self, text):
-        self.txt = text
-
-        
 class CircularBufferWithoutOverwrite:
 
     def __init__(self, length):
@@ -58,51 +47,49 @@ class CircularBufferWithoutOverwrite:
         self.buffer = []
         self.head = 0
         self.tail = 0
-        self.count = 0
+        self.is_full = False
+        self.is_empty = True
 
-    # Сделаем проверки на возможность записи и на наличие объектов для чтения.
-
-    def is_full(self):
-        return self.count == self.length
-
-    def is_empty(self):
-        return not self.count
-
-    # Метод put записывает данные в буфер по указателю head и смещает указатель
+    # Метод put записывает данные в буфер по указателю head
     # Если положить в буфер не можем, прокидывается исключение.
 
     def put(self, item):
-        if self.is_full():
-            raise BufferFull('buffer is full')
+        if self.is_full:
+            raise BufferError('buffer is full')
         if len(self.buffer) < self.length:
             self.buffer.append(item)
         else:
             self.buffer[self.head] = item
-        self.count += 1
         if self.head == self.length - 1:
             self.head = 0
         else:
             self.head += 1
+        self.is_empty = False
+        if self.head == self.tail:
+            self.is_full = True
 
-    # Метод get возвращает элемент из буфера по указателю tail и сдвигает указатель tail.
+    # Метод get возвращает элемент из буфера по указателю tail.
     # Если взять из буфера нечего, прокидывается исключение.
 
     def get(self):
-        if self.is_empty():
-            raise BufferEmpty('buffer is empty')
+        if self.is_empty:
+            raise BufferError('buffer is empty')
         item = self.buffer[self.tail]
-        self.count -= 1
         if self.tail == self.length - 1:
             self.tail = 0
         else:
             self.tail += 1
+        self.is_full = False
+        if self.head == self.tail:
+            self.is_empty = True
         return item
+
 
 '''Плюсы данной реализации в том, что никакие данные не будут потеряны
 Минус в том, что если скорость чтения опережает скорость записи, то процессу отправляющему данные придётся ждать.
 Либо нам нужно создавать дополнительный буфер в виде очереди, чтобы хранить в нём ещё незаписанные данные
 
-Теперь напишем класс для кольцевого буфера с перезаписью данных с теми же атрибутами
+Теперь напишем класс для кольцевого буфера с перезаписью данных 
 Проверку на заполненность не делаем, т.к. буфер будет сам себя перезаписывать
 Основное изменение в методе put, что мы добавляем условие для вызова метода tail_shift,
 чтобы сдвинуть tail на актуальный первый элемент при перезаписи данных 
@@ -116,31 +103,28 @@ class CircularBufferWithOverwrite:
         self.length = length
         self.head = 0
         self.tail = 0
-        self.count = 0
-
-    def is_empty(self):
-        return not self.count
+        self.is_empty = True
 
     def put(self, item):
         if len(self.buffer) < self.length:
             self.buffer.append(item)
         else:
             self.buffer[self.head] = item
-        if self.count < self.length:
-            self.count += 1
-        else:
+        if not self.is_empty and self.tail == self.head:
             self.tail_shift()
         if self.head == self.length - 1:
             self.head = 0
         else:
             self.head += 1
+        self.is_empty = False
 
     def get(self):
-        if self.is_empty():
-            raise BufferEmpty('buffer is empty')
+        if self.is_empty:
+            raise BufferError('buffer is empty')
         item = self.buffer[self.tail]
-        self.count -= 1
         self.tail_shift()
+        if self.head == self.tail:
+            self.is_empty = True
         return item
 
     def tail_shift(self):

@@ -35,8 +35,7 @@ UPDATE: Изначально я прислал Вам свою реализац�
 и дальнейшей частичной логикой работы буфера от его заполненности None, не предположив, 
 что в него может прилететь None на put и сломать логику.
 
-Переписал классы обоих буферов с инициализацией с пустым списком. Т.к. использовать pop(0)
-на каждом вызове get() очень дорого, реализуем через индексы tail и head.
+Переписал классы обоих буферов. Они также при инициализации заполняются None, но теперь их логика работы не зависит от None. 
 """
 
 
@@ -44,7 +43,7 @@ class CircularBufferWithoutOverwrite:
 
     def __init__(self, length):
         self.length = length
-        self.buffer = []
+        self.buffer = [None] * length
         self.head = 0
         self.tail = 0
         self.is_full = False
@@ -56,10 +55,7 @@ class CircularBufferWithoutOverwrite:
     def put(self, item):
         if self.is_full:
             raise BufferError('buffer is full')
-        if len(self.buffer) < self.length:
-            self.buffer.append(item)
-        else:
-            self.buffer[self.head] = item
+        self.buffer[self.head] = item
         if self.head == self.length - 1:
             self.head = 0
         else:
@@ -70,11 +66,12 @@ class CircularBufferWithoutOverwrite:
 
     # Метод get возвращает элемент из буфера по указателю tail.
     # Если взять из буфера нечего, прокидывается исключение.
+    # Так же происходит чистка буфера с присваиванием считанной позиции None
 
     def get(self):
         if self.is_empty:
             raise BufferError('buffer is empty')
-        item = self.buffer[self.tail]
+        item, self.buffer[self.tail] = self.buffer[self.tail], None
         if self.tail == self.length - 1:
             self.tail = 0
         else:
@@ -99,17 +96,14 @@ class CircularBufferWithoutOverwrite:
 class CircularBufferWithOverwrite:
 
     def __init__(self, length):
-        self.buffer = []
+        self.buffer = [None] * length
         self.length = length
         self.head = 0
         self.tail = 0
         self.is_empty = True
 
     def put(self, item):
-        if len(self.buffer) < self.length:
-            self.buffer.append(item)
-        else:
-            self.buffer[self.head] = item
+        self.buffer[self.head] = item
         if not self.is_empty and self.tail == self.head:
             self.tail_shift()
         if self.head == self.length - 1:
@@ -121,7 +115,7 @@ class CircularBufferWithOverwrite:
     def get(self):
         if self.is_empty:
             raise BufferError('buffer is empty')
-        item = self.buffer[self.tail]
+        item, self.buffer[self.tail] = self.buffer[self.tail], None
         self.tail_shift()
         if self.head == self.tail:
             self.is_empty = True
